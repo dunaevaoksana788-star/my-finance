@@ -14,7 +14,7 @@
 
   // ---------------- Storage ----------------
   function defaultData() {
-    return { transactions: [], credits: [], goals: [], cushion: { months: 6, current: 0 } };
+    return { transactions: [], credits: [], goals: [], cushion: { target: 0, current: 0 } };
   }
 
   function loadData() {
@@ -351,11 +351,13 @@
   }
 
   // ---------------- Safety cushion ----------------
-  const cushionMonthsSelect = document.getElementById('cushionMonths');
+  const cushionTargetForm = document.getElementById('cushionTargetForm');
   const cushionForm = document.getElementById('cushionForm');
 
-  cushionMonthsSelect.addEventListener('change', () => {
-    data.cushion.months = parseInt(cushionMonthsSelect.value, 10);
+  cushionTargetForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const target = parseFloat(document.getElementById('cushionTargetInput').value);
+    data.cushion.target = target > 0 ? target : 0;
     saveData();
     renderCushion();
   });
@@ -376,35 +378,16 @@
     renderDashboard();
   });
 
-  function avgMonthlyExpense() {
-    const byMonth = {};
-    data.transactions.filter(t => t.type === 'expense').forEach(t => {
-      const k = monthKey(t.date);
-      byMonth[k] = (byMonth[k] || 0) + t.amount;
-    });
-    const keys = Object.keys(byMonth);
-    if (keys.length === 0) return 0;
-    const total = keys.reduce((s, k) => s + byMonth[k], 0);
-    return total / keys.length;
-  }
-
   function renderCushion() {
-    cushionMonthsSelect.value = String(data.cushion.months || 6);
-    const avg = avgMonthlyExpense();
-    const target = avg * (data.cushion.months || 6);
+    const target = data.cushion.target || 0;
     const current = data.cushion.current || 0;
     const pct = target > 0 ? clamp((current / target) * 100, 0, 100) : 0;
 
-    document.getElementById('cushionTargetText').textContent = fmtMoney(target);
-    document.getElementById('cushionAvgText').textContent = avg > 0
-      ? `(на основе среднемес. расходов ${fmtMoney(avg)})`
-      : '(добавьте операции, чтобы рассчитать цель)';
+    document.getElementById('cushionTargetInput').value = target || '';
     document.getElementById('cushionFill').style.width = pct.toFixed(1) + '%';
-
-    const monthsCovered = avg > 0 ? (current / avg) : 0;
-    document.getElementById('cushionStatusText').textContent = avg > 0
-      ? `Накоплено ${fmtMoney(current)} — хватит примерно на ${monthsCovered.toFixed(1)} мес. расходов (${pct.toFixed(0)}% от цели)`
-      : `Накоплено ${fmtMoney(current)}`;
+    document.getElementById('cushionStatusText').textContent = target > 0
+      ? `Накоплено ${fmtMoney(current)} из ${fmtMoney(target)} (${pct.toFixed(0)}%)`
+      : `Накоплено ${fmtMoney(current)}. Укажите целевую сумму выше, чтобы видеть прогресс.`;
 
     // dashboard mini
     document.getElementById('dashCushionFill').style.width = pct.toFixed(1) + '%';
@@ -551,7 +534,7 @@
     data.goals.push({ id: uid(), name: 'Поездка в Грузию', target: 150000, current: 45000, deadline: addMonths(todayISO(), 5) });
     data.goals.push({ id: uid(), name: 'Новый ноутбук', target: 120000, current: 90000, deadline: '' });
     data.cushion.current = 60000;
-    data.cushion.months = 6;
+    data.cushion.target = 300000;
     saveData();
     renderAll();
   }

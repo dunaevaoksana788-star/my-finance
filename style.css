@@ -365,24 +365,8 @@ tbody tr:last-child td { border-bottom: none; }
 .mini-goal-item { display: flex; flex-direction: column; gap: 4px; }
 .mini-goal-item .row { display: flex; justify-content: space-between; font-size: 13px; }
 
-/* ---------- Cushion settings ---------- */
-.cushion-settings {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex-wrap: wrap;
-  margin: 14px 0;
-  font-size: 14px;
-}
-.cushion-settings select {
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  font-family: inherit;
-  margin-left: 6px;
-}
-.cushion-target strong { color: var(--primary-dark); }
+/* ---------- Cushion target form ---------- */
+.cushion-target-form { margin-top: 14px; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {

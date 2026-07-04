@@ -192,21 +192,12 @@
   <section class="tab-panel" id="tab-cushion">
     <div class="card">
       <h3>Подушка безопасности</h3>
-      <p class="muted">Это сумма на непредвиденный случай — потеря дохода, срочный ремонт, лечение. Обычно её считают в месяцах ваших расходов.</p>
+      <p class="muted">Это сумма на непредвиденный случай — потеря дохода, срочный ремонт, лечение. Обычно её держат в размере 3–6 месячных расходов, но подойдёт любая сумма, которая вас устроит.</p>
 
-      <div class="cushion-settings">
-        <label>Цель, месяцев расходов:
-          <select id="cushionMonths">
-            <option value="3">3</option>
-            <option value="6" selected>6</option>
-            <option value="9">9</option>
-            <option value="12">12</option>
-          </select>
-        </label>
-        <div class="cushion-target">Целевая сумма: <strong id="cushionTargetText">0 ₽</strong>
-          <span class="muted" id="cushionAvgText"></span>
-        </div>
-      </div>
+      <form id="cushionTargetForm" class="form-row cushion-target-form">
+        <input type="number" id="cushionTargetInput" placeholder="Целевая сумма, ₽" min="0" step="0.01">
+        <button type="submit" class="btn btn-light">Сохранить цель</button>
+      </form>
 
       <div class="progress-bar big"><div class="progress-fill cushion" id="cushionFill"></div></div>
       <p class="mini-text" id="cushionStatusText"></p>
