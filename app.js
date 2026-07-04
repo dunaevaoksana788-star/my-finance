@@ -114,7 +114,18 @@
       const months = days / 30.44;
       if (months <= 0) return 'Срок уже прошёл — обновите дату или сумму';
       const monthly = remaining / months;
-      return `Чтобы успеть к ${fmtDate(g.deadline)}, откладывайте ~${fmtMoney(monthly)}/мес`;
+      let verdict = '';
+      if (data.transactions.length > 0) {
+        const fcf = freeCashFlow();
+        if (fcf <= 0) {
+          verdict = ' Внимание: при текущих доходах, расходах и платежах по кредитам свободных денег не остаётся вовсе.';
+        } else if (monthly > fcf) {
+          verdict = ` Это больше вашего свободного остатка (${fmtMoney(fcf)}/мес с учётом доходов, расходов и кредитов) — не хватает ${fmtMoney(monthly - fcf)}/мес. Стоит сдвинуть срок или сократить расходы.`;
+        } else {
+          verdict = ` Это вам по силам: свободный остаток с учётом доходов, расходов и кредитов — ${fmtMoney(fcf)}/мес.`;
+        }
+      }
+      return `Чтобы успеть к ${fmtDate(g.deadline)}, откладывайте ~${fmtMoney(monthly)}/мес.${verdict}`;
     }
     return savingsPlanText(g.target, g.current);
   }
