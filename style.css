@@ -351,6 +351,11 @@ tbody tr:last-child td { border-bottom: none; }
   font-family: inherit;
   font-size: 13px;
 }
+.payoff-calc {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
 .remove-link {
   border: none;
   background: none;

@@ -3,12 +3,13 @@
 
   const STORAGE_KEY = 'myFinanceAppData';
 
-  const EXPENSE_CATEGORIES = ['Еда', 'Транспорт', 'Жильё', 'Развлечения', 'Здоровье', 'Одежда', 'Образование', 'Прочее'];
+  const EXPENSE_CATEGORIES = ['Еда', 'Транспорт', 'Жильё', 'Развлечения', 'Здоровье', 'Одежда', 'Образование', 'Маникюр-педикюр', 'Парикмахерская', 'Прочее'];
   const INCOME_CATEGORIES = ['Зарплата', 'Фриланс', 'Подарки', 'Инвестиции', 'Прочее'];
 
   const CATEGORY_COLORS = {
     'Еда': '#f4a462', 'Транспорт': '#4dabf7', 'Жильё': '#845ef7', 'Развлечения': '#ff6b9d',
-    'Здоровье': '#20c997', 'Одежда': '#ffd43b', 'Образование': '#748ffc', 'Прочее': '#adb5bd',
+    'Здоровье': '#20c997', 'Одежда': '#ffd43b', 'Образование': '#748ffc',
+    'Маникюр-педикюр': '#e64980', 'Парикмахерская': '#be4bdb', 'Прочее': '#adb5bd',
     'Зарплата': '#16a34a', 'Фриланс': '#2f9e44', 'Подарки': '#f06595', 'Инвестиции': '#0ca678'
   };
 
@@ -275,6 +276,28 @@
     renderAll();
   });
 
+  function creditPayoffMonths(principal, payment, annualRatePct) {
+    if (principal <= 0) return 0;
+    if (!payment || payment <= 0) return Infinity;
+    const r = (annualRatePct || 0) / 100 / 12;
+    if (r <= 0) return principal / payment;
+    if (payment <= principal * r) return Infinity;
+    return -Math.log(1 - (r * principal) / payment) / Math.log(1 + r);
+  }
+
+  function creditPayoffText(c, payment) {
+    if (!payment || payment <= 0) return '';
+    const months = creditPayoffMonths(c.remaining, payment, c.rate);
+    if (!isFinite(months)) {
+      return 'Такой платёж не покрывает даже проценты — долг не будет уменьшаться. Увеличьте сумму.';
+    }
+    if (months <= 0) return 'Кредит уже погашен.';
+    const dateEstimate = addMonths(todayISO(), Math.ceil(months));
+    const totalPaid = payment * months;
+    const overpay = Math.max(0, totalPaid - c.remaining);
+    return `При платеже ${fmtMoney(payment)}/мес кредит закроется примерно через ${months.toFixed(1)} мес. (к ${fmtDate(dateEstimate)}), переплата на процентах ≈ ${fmtMoney(overpay)}`;
+  }
+
   function renderCredits() {
     const list = data.credits.slice().sort((a, b) => (a.nextDate || '').localeCompare(b.nextDate || ''));
     const container = document.getElementById('creditsList');
@@ -307,6 +330,14 @@
           <button class="btn btn-primary" data-pay-credit="${c.id}">Внести платёж (${fmtMoney(c.monthly)})</button>
           <input type="number" min="0" step="0.01" placeholder="Своя сумма" data-custom-pay-input="${c.id}">
           <button class="btn btn-light" data-custom-pay="${c.id}">Внести</button>
+        </div>
+        <div class="payoff-calc">
+          <p class="mini-text">Через сколько закроется долг, если платить больше?</p>
+          <div class="entity-actions">
+            <input type="number" min="0" step="0.01" placeholder="Платёж в мес., ₽" value="${c.monthly}" data-payoff-input="${c.id}">
+            <button class="btn btn-light" data-payoff-calc="${c.id}">Посчитать</button>
+          </div>
+          <p class="mini-text plan-text" data-payoff-result="${c.id}"></p>
         </div>` : ''}
       </div>`;
     }).join('');
@@ -336,6 +367,17 @@
         if (!c) return;
         c.remaining = clamp(c.remaining - amount, 0, c.total);
         saveData(); renderAll();
+      });
+    });
+    container.querySelectorAll('[data-payoff-calc]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.payoffCalc;
+        const input = container.querySelector(`[data-payoff-input="${id}"]`);
+        const result = container.querySelector(`[data-payoff-result="${id}"]`);
+        const c = data.credits.find(c => c.id === id);
+        if (!c) return;
+        const payment = parseFloat(input.value);
+        result.textContent = creditPayoffText(c, payment);
       });
     });
   }
