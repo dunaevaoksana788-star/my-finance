@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мои финансы — аналитика доходов и расходов</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">₽</span>
+      <span class="brand-text">Мои финансы</span>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab-btn active" data-tab="dashboard">Дашборд</button>
+      <button class="tab-btn" data-tab="transactions">Операции</button>
+      <button class="tab-btn" data-tab="credits">Кредиты</button>
+      <button class="tab-btn" data-tab="dream">Копилка на мечту</button>
+      <button class="tab-btn" data-tab="cushion">Подушка безопасности</button>
+    </nav>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="exportBtn" title="Экспорт данных в файл">Экспорт</button>
+      <button class="icon-btn" id="importBtn" title="Импорт данных из файла">Импорт</button>
+      <input type="file" id="importInput" accept="application/json" hidden>
+      <button class="icon-btn danger" id="resetBtn" title="Удалить все данные">Сбросить</button>
+    </div>
+    <button class="burger" id="burgerBtn" aria-label="Меню">☰</button>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ONBOARDING BANNER -->
+  <div class="banner" id="onboardingBanner" hidden>
+    <div>
+      <strong>Пока нет данных.</strong> Добавьте первую операцию во вкладке «Операции» — или посмотрите, как выглядит приложение, на примере демо-данных.
+    </div>
+    <button class="btn btn-light" id="loadDemoBtn">Загрузить пример</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <section class="tab-panel active" id="tab-dashboard">
+    <div class="cards-row">
+      <div class="stat-card income">
+        <span class="stat-label">Доходы за месяц</span>
+        <span class="stat-value" id="statIncome">0 ₽</span>
+      </div>
+      <div class="stat-card expense">
+        <span class="stat-label">Расходы за месяц</span>
+        <span class="stat-value" id="statExpense">0 ₽</span>
+      </div>
+      <div class="stat-card balance">
+        <span class="stat-label">Баланс за месяц</span>
+        <span class="stat-value" id="statBalance">0 ₽</span>
+      </div>
+      <div class="stat-card rate">
+        <span class="stat-label">Норма сбережений</span>
+        <span class="stat-value" id="statRate">0%</span>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Расходы по категориям <span class="muted">(текущий месяц)</span></h3>
+        <div class="chart-wrap">
+          <canvas id="chartCategories"></canvas>
+        </div>
+        <p class="empty-hint" id="chartCategoriesEmpty" hidden>Нет расходов в этом месяце</p>
+      </div>
+      <div class="card">
+        <h3>Доходы и расходы <span class="muted">(6 месяцев)</span></h3>
+        <div class="chart-wrap">
+          <canvas id="chartTrend"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card mini-card">
+        <h4>Подушка безопасности</h4>
+        <div class="progress-bar"><div class="progress-fill cushion" id="dashCushionFill"></div></div>
+        <p class="mini-text" id="dashCushionText">—</p>
+      </div>
+      <div class="card mini-card">
+        <h4>Копилка на мечту</h4>
+        <div id="dashGoalsList" class="mini-goals-list"></div>
+      </div>
+      <div class="card mini-card">
+        <h4>Кредиты</h4>
+        <p class="mini-big" id="dashCreditsTotal">0 ₽</p>
+        <p class="mini-text">общий остаток долга</p>
+        <div id="dashCreditsNext" class="mini-text"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRANSACTIONS -->
+  <section class="tab-panel" id="tab-transactions">
+    <div class="card">
+      <h3>Добавить операцию</h3>
+      <form id="txForm" class="form-row">
+        <div class="seg" id="txTypeSeg">
+          <button type="button" class="seg-btn active" data-type="expense">Расход</button>
+          <button type="button" class="seg-btn" data-type="income">Доход</button>
+        </div>
+        <select id="txCategory" required></select>
+        <input type="number" id="txAmount" placeholder="Сумма, ₽" min="0" step="0.01" required>
+        <input type="date" id="txDate" required>
+        <input type="text" id="txNote" placeholder="Заметка (необязательно)">
+        <button type="submit" class="btn btn-primary">Добавить</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="list-header">
+        <h3>История операций</h3>
+        <div class="filters">
+          <select id="filterMonth"></select>
+          <select id="filterType">
+            <option value="all">Все типы</option>
+            <option value="income">Только доходы</option>
+            <option value="expense">Только расходы</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="txTable">
+          <thead>
+            <tr><th>Дата</th><th>Категория</th><th>Заметка</th><th class="text-right">Сумма</th><th></th></tr>
+          </thead>
+          <tbody id="txTableBody"></tbody>
+        </table>
+      </div>
+      <p class="empty-hint" id="txEmpty" hidden>Операций пока нет</p>
+    </div>
+  </section>
+
+  <!-- CREDITS -->
+  <section class="tab-panel" id="tab-credits">
+    <div class="card">
+      <h3>Добавить кредит</h3>
+      <form id="creditForm" class="form-row">
+        <input type="text" id="creditName" placeholder="Название (например, ипотека)" required>
+        <input type="number" id="creditTotal" placeholder="Сумма кредита, ₽" min="0" step="0.01" required>
+        <input type="number" id="creditRemaining" placeholder="Остаток долга, ₽" min="0" step="0.01" required>
+        <input type="number" id="creditMonthly" placeholder="Платёж в месяц, ₽" min="0" step="0.01" required>
+        <input type="number" id="creditRate" placeholder="Ставка, % годовых" min="0" step="0.01">
+        <input type="date" id="creditNextDate" required>
+        <button type="submit" class="btn btn-primary">Добавить кредит</button>
+      </form>
+    </div>
+
+    <div class="cards-row">
+      <div class="stat-card debt">
+        <span class="stat-label">Общий остаток долга</span>
+        <span class="stat-value" id="creditsTotalDebt">0 ₽</span>
+      </div>
+      <div class="stat-card debt2">
+        <span class="stat-label">Платежи в месяц</span>
+        <span class="stat-value" id="creditsMonthlySum">0 ₽</span>
+      </div>
+    </div>
+
+    <div id="creditsList" class="cards-list"></div>
+    <p class="empty-hint" id="creditsEmpty" hidden>Кредитов пока нет — самое время это отпраздновать 🙂</p>
+  </section>
+
+  <!-- DREAM GOALS -->
+  <section class="tab-panel" id="tab-dream">
+    <div class="card">
+      <h3>Новая цель</h3>
+      <form id="goalForm" class="form-row">
+        <input type="text" id="goalName" placeholder="Название мечты (например, поездка в Японию)" required>
+        <input type="number" id="goalTarget" placeholder="Нужная сумма, ₽" min="0" step="0.01" required>
+        <input type="number" id="goalCurrent" placeholder="Уже накоплено, ₽" min="0" step="0.01">
+        <input type="date" id="goalDeadline" placeholder="Срок (необязательно)">
+        <button type="submit" class="btn btn-primary">Создать цель</button>
+      </form>
+    </div>
+
+    <div id="goalsList" class="cards-list"></div>
+    <p class="empty-hint" id="goalsEmpty" hidden>Целей пока нет. Добавьте свою первую мечту!</p>
+  </section>
+
+  <!-- SAFETY CUSHION -->
+  <section class="tab-panel" id="tab-cushion">
+    <div class="card">
+      <h3>Подушка безопасности</h3>
+      <p class="muted">Это сумма на непредвиденный случай — потеря дохода, срочный ремонт, лечение. Обычно её считают в месяцах ваших расходов.</p>
+
+      <div class="cushion-settings">
+        <label>Цель, месяцев расходов:
+          <select id="cushionMonths">
+            <option value="3">3</option>
+            <option value="6" selected>6</option>
+            <option value="9">9</option>
+            <option value="12">12</option>
+          </select>
+        </label>
+        <div class="cushion-target">Целевая сумма: <strong id="cushionTargetText">0 ₽</strong>
+          <span class="muted" id="cushionAvgText"></span>
+        </div>
+      </div>
+
+      <div class="progress-bar big"><div class="progress-fill cushion" id="cushionFill"></div></div>
+      <p class="mini-text" id="cushionStatusText"></p>
+
+      <form id="cushionForm" class="form-row">
+        <input type="number" id="cushionAmount" placeholder="Сумма, ₽" min="0" step="0.01" required>
+        <button type="submit" class="btn btn-primary" data-action="add">Пополнить</button>
+        <button type="submit" class="btn btn-light" data-action="withdraw">Снять</button>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
