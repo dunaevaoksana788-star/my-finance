@@ -71,6 +71,54 @@
 
   function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 
+  // ---------------- Savings forecast helpers ----------------
+  function avgMonthlyByType(type) {
+    const byMonth = {};
+    data.transactions.filter(t => t.type === type).forEach(t => {
+      const k = monthKey(t.date);
+      byMonth[k] = (byMonth[k] || 0) + t.amount;
+    });
+    const keys = Object.keys(byMonth);
+    if (keys.length === 0) return 0;
+    return keys.reduce((s, k) => s + byMonth[k], 0) / keys.length;
+  }
+
+  function totalMonthlyCreditPayments() {
+    return data.credits.filter(c => c.remaining > 0).reduce((s, c) => s + c.monthly, 0);
+  }
+
+  function freeCashFlow() {
+    return avgMonthlyByType('income') - avgMonthlyByType('expense') - totalMonthlyCreditPayments();
+  }
+
+  function savingsPlanText(target, current) {
+    const remaining = Math.max(0, (target || 0) - (current || 0));
+    if (target > 0 && remaining <= 0) return 'Цель уже достигнута! 🎉';
+    const fcf = freeCashFlow();
+    if (fcf > 0) {
+      const months = remaining / fcf;
+      const dateEstimate = addMonths(todayISO(), Math.ceil(months));
+      return `При свободном остатке ${fmtMoney(fcf)}/мес — накопите примерно через ${months.toFixed(1)} мес. (к ${fmtDate(dateEstimate)})`;
+    }
+    if (data.transactions.length === 0) {
+      return 'Добавьте операции во вкладке «Операции», чтобы увидеть прогноз накоплений';
+    }
+    return 'При текущих доходах, расходах и платежах по кредитам свободных средств не остаётся — рассмотрите сокращение расходов';
+  }
+
+  function goalPlanText(g) {
+    const remaining = Math.max(0, g.target - g.current);
+    if (remaining <= 0) return 'Цель уже достигнута! 🎉';
+    if (g.deadline) {
+      const days = Math.ceil((new Date(g.deadline + 'T00:00:00') - new Date(todayISO() + 'T00:00:00')) / 86400000);
+      const months = days / 30.44;
+      if (months <= 0) return 'Срок уже прошёл — обновите дату или сумму';
+      const monthly = remaining / months;
+      return `Чтобы успеть к ${fmtDate(g.deadline)}, откладывайте ~${fmtMoney(monthly)}/мес`;
+    }
+    return savingsPlanText(g.target, g.current);
+  }
+
   // ---------------- Navigation ----------------
   const tabButtons = document.querySelectorAll('.tab-btn');
   const tabPanels = document.querySelectorAll('.tab-panel');
@@ -303,6 +351,7 @@
     const list = data.goals;
     const container = document.getElementById('goalsList');
     document.getElementById('goalsEmpty').hidden = list.length > 0;
+    document.getElementById('freeCashDream').textContent = fmtMoney(freeCashFlow());
 
     container.innerHTML = list.map(g => {
       const pct = g.target > 0 ? clamp((g.current / g.target) * 100, 0, 100) : 0;
@@ -323,6 +372,7 @@
         </div>
         <div class="progress-bar"><div class="progress-fill goal" style="width:${pct.toFixed(1)}%"></div></div>
         <p class="mini-text">${pct.toFixed(0)}% накоплено</p>
+        <p class="mini-text plan-text">${goalPlanText(g)}</p>
         <div class="entity-actions">
           <input type="number" min="0" step="0.01" placeholder="Сумма" data-goal-input="${g.id}">
           <button class="btn btn-primary" data-goal-add="${g.id}">Пополнить</button>
@@ -378,16 +428,26 @@
     renderDashboard();
   });
 
+  document.getElementById('cushionResetBtn').addEventListener('click', () => {
+    if (!confirm('Обнулить накопленную сумму подушки безопасности?')) return;
+    data.cushion.current = 0;
+    saveData();
+    renderCushion();
+    renderDashboard();
+  });
+
   function renderCushion() {
     const target = data.cushion.target || 0;
     const current = data.cushion.current || 0;
     const pct = target > 0 ? clamp((current / target) * 100, 0, 100) : 0;
+    document.getElementById('freeCashCushion').textContent = fmtMoney(freeCashFlow());
 
     document.getElementById('cushionTargetInput').value = target || '';
     document.getElementById('cushionFill').style.width = pct.toFixed(1) + '%';
     document.getElementById('cushionStatusText').textContent = target > 0
       ? `Накоплено ${fmtMoney(current)} из ${fmtMoney(target)} (${pct.toFixed(0)}%)`
       : `Накоплено ${fmtMoney(current)}. Укажите целевую сумму выше, чтобы видеть прогресс.`;
+    document.getElementById('cushionPlanText').textContent = target > 0 ? savingsPlanText(target, current) : '';
 
     // dashboard mini
     document.getElementById('dashCushionFill').style.width = pct.toFixed(1) + '%';

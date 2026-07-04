@@ -173,6 +173,11 @@
 
   <!-- DREAM GOALS -->
   <section class="tab-panel" id="tab-dream">
+    <div class="card free-cashflow-card">
+      <p class="mini-text">Свободный остаток в месяц: <strong id="freeCashDream">0 ₽</strong>
+        <span class="muted">(доходы − расходы − платежи по кредитам, в среднем за месяц)</span></p>
+    </div>
+
     <div class="card">
       <h3>Новая цель</h3>
       <form id="goalForm" class="form-row">
@@ -190,6 +195,11 @@
 
   <!-- SAFETY CUSHION -->
   <section class="tab-panel" id="tab-cushion">
+    <div class="card free-cashflow-card">
+      <p class="mini-text">Свободный остаток в месяц: <strong id="freeCashCushion">0 ₽</strong>
+        <span class="muted">(доходы − расходы − платежи по кредитам, в среднем за месяц)</span></p>
+    </div>
+
     <div class="card">
       <h3>Подушка безопасности</h3>
       <p class="muted">Это сумма на непредвиденный случай — потеря дохода, срочный ремонт, лечение. Обычно её держат в размере 3–6 месячных расходов, но подойдёт любая сумма, которая вас устроит.</p>
@@ -201,11 +211,13 @@
 
       <div class="progress-bar big"><div class="progress-fill cushion" id="cushionFill"></div></div>
       <p class="mini-text" id="cushionStatusText"></p>
+      <p class="mini-text plan-text" id="cushionPlanText"></p>
 
       <form id="cushionForm" class="form-row">
         <input type="number" id="cushionAmount" placeholder="Сумма, ₽" min="0" step="0.01" required>
         <button type="submit" class="btn btn-primary" data-action="add">Пополнить</button>
         <button type="submit" class="btn btn-light" data-action="withdraw">Снять</button>
+        <button type="button" class="btn btn-danger-outline" id="cushionResetBtn">Сбросить накопленное</button>
       </form>
     </div>
   </section>
